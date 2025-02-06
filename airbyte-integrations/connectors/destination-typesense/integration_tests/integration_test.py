@@ -56,6 +56,8 @@ def teardown(config: Mapping):
     client = get_client(config=config)
     try:
         client.collections["_airbyte"].delete()
+        client.collections["_airbyte_0"].delete()
+        client.collections["_airbyte_1"].delete()
     except Exception:
         pass
 
@@ -75,7 +77,12 @@ def test_check_valid_config(config: Mapping):
 def test_check_invalid_config():
     outcome = DestinationTypesense().check(
         logging.getLogger("airbyte"),
-        {"api_key": "not_a_real_key", "host": "https://www.fake.com"},
+        {
+            "api_key": "not_a_real_key",
+            "host": "example.com",
+            "protocol": "https",
+            "port": "443"
+        },
     )
     print(outcome)
     assert outcome.status == Status.FAILED
@@ -90,7 +97,7 @@ def _record(stream: str, str_value: str, int_value: int) -> AirbyteMessage:
         type=Type.RECORD,
         record=AirbyteRecordMessage(
             stream=stream,
-            data={"str_col": str_value, "int_col": int_value},
+            data={"id": str_value, "str_col": str_value, "int_col": int_value},
             emitted_at=0,
         ),
     )
@@ -101,13 +108,33 @@ def collection_size(client: Client, stream: str) -> int:
     return collection["num_documents"]
 
 
-def test_write(config: Mapping, configured_catalog: ConfiguredAirbyteCatalog, client: Client):
+def test_write_create(config: Mapping, configured_catalog: ConfiguredAirbyteCatalog, client: Client):
     configured_streams = list(map(lambda s: s.stream.name, configured_catalog.streams))
+
     first_state_message = _state({"state": "1"})
     first_record_chunk = [_record(stream, str(i), i) for i, stream in enumerate(configured_streams)]
 
     destination = DestinationTypesense()
-    list(destination.write(config, configured_catalog, [*first_record_chunk, first_state_message]))
+    list(destination.write({
+        **config,
+        "action": "create"
+    }, configured_catalog, [*first_record_chunk, first_state_message]))
+
+    for stream in configured_streams:
+        assert collection_size(client, stream) == 1
+
+
+def test_write_upsert(config: Mapping, configured_catalog: ConfiguredAirbyteCatalog, client: Client):
+    configured_streams = list(map(lambda s: s.stream.name, configured_catalog.streams))
+
+    first_state_message = _state({"state": "1"})
+    first_record_chunk = [_record(stream, str(i), i) for i, stream in enumerate(configured_streams)]
+
+    destination = DestinationTypesense()
+    list(destination.write({
+        **config,
+        "action": "upsert"
+    }, configured_catalog, [*first_record_chunk, first_state_message]))
 
     for stream in configured_streams:
         assert collection_size(client, stream) == 1

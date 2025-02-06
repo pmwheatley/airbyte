@@ -5,4 +5,5 @@
 
 from .destination import DestinationTypesense
 
+
 __all__ = ["DestinationTypesense"]

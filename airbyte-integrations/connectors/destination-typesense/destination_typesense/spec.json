@@ -7,7 +7,7 @@
     "title": "Destination Typesense",
     "type": "object",
     "required": ["api_key", "host"],
-    "additionalProperties": false,
+    "additionalProperties": true,
     "properties": {
       "api_key": {
         "title": "API Key",
@@ -30,6 +30,11 @@
       "protocol": {
         "title": "Protocol",
         "type": "string",
+        "enum": [
+          "http",
+          "https"
+        ],
+        "default": "https",
         "description": "Protocol of the Typesense instance. Ex: http or https. Default is https",
         "order": 3
       },
@@ -44,6 +49,19 @@
         "type": "string",
         "description": "Path of the Typesense instance. Default is none",
         "order": 5
+      },
+      "action": {
+        "title": "Action",
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "upsert",
+          "emplace"
+        ],
+        "default": "create",
+        "description": "Path of the Typesense instance. Default is none",
+        "order": 6
       }
     }
   }

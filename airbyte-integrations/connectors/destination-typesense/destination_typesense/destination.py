@@ -63,7 +63,7 @@ class DestinationTypesense(Destination):
                     pass
                 client.collections.create({"name": steam_name, "fields": [{"name": ".*", "type": "auto"}]})
 
-        writer = TypesenseWriter(client, config.get("batch_size"))
+        writer = TypesenseWriter(client, config.get("batch_size"), config.get("action"))
         for message in input_messages:
             if message.type == Type.STATE:
                 writer.flush()
@@ -75,13 +75,15 @@ class DestinationTypesense(Destination):
                 continue
         writer.flush()
 
+        yield from []
+
     def check(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteConnectionStatus:
         logger.debug("TypeSense Destination Config Check")
         try:
             client = get_client(config=config)
             client.collections.create({"name": "_airbyte", "fields": [{"name": "title", "type": "string"}]})
 
-            writer = TypesenseWriter(client, config.get("batch_size", 10000))
+            writer = TypesenseWriter(client, config.get("batch_size", 10000), config.get("action"))
             writer.queue_write_operation("_airbyte", {"id": "1", "title": "The Hunger Games"})
             writer.flush()
 

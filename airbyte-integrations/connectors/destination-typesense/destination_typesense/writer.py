@@ -16,9 +16,10 @@ logger = getLogger("airbyte")
 class TypesenseWriter:
     write_buffer: list[tuple[str, Mapping]] = []
 
-    def __init__(self, client: Client, batch_size: int = 10000):
+    def __init__(self, client: Client, batch_size: int = 10000, action: str = "create"):
         self.client = client
         self.batch_size = batch_size or 10000
+        self.action = action
 
     def queue_write_operation(self, stream_name: str, data: Mapping):
         random_key = str(uuid4())
@@ -45,5 +46,5 @@ class TypesenseWriter:
             grouped_by_stream[stream].append(data)
 
         for stream, data in grouped_by_stream.items():
-            self.client.collections[stream].documents.import_(data)
+            self.client.collections[stream].documents.import_(data, { "action": self.action })
         self.write_buffer.clear()
